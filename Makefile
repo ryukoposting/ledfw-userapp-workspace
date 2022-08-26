@@ -1,5 +1,7 @@
 CC:=arm-none-eabi-gcc
 
+DEVICE_NAME:=LT-7AB-27A
+
 CFLAGS:=\
 -ffreestanding\
 -nostartfiles\
@@ -16,4 +18,9 @@ CFLAGS_CM4_AAPCS_FPV4_SP_D16:=\
 
 leds.elf: main.c leds.h linker_script.ld Makefile
 	arm-none-eabi-gcc $(CFLAGS) $(CFLAGS_CM4_AAPCS_FPV4_SP_D16) -T linker_script.ld main.c -o $@
-	../../target/debug/elf2ble.exe
+
+install: leds.elf
+	uapputil install -i leds.elf -n $(DEVICE_NAME)
+
+run: leds.elf
+	uapputil run -i leds.elf -n $(DEVICE_NAME)
