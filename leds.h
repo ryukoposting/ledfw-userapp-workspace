@@ -4,8 +4,41 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef VSCODE
+#define _DESC_ARCHCPU 4
+#define _DESC_ARCHFLAGS 1
+#endif
+
+#ifndef CONCAT
+#define CONCAT_(X,Y) X ## Y
+#define CONCAT(X,Y) CONCAT_(X,Y)
+#endif
+
+#define DMX_SLOT(slot_ident) ((uint32_t)(&slot_ident))
+#define DMX_PERS(pers_ident) ((uint32_t)(&pers_ident))
+
+#define DEFINE_PRIMARY_SLOT(slot_ident, slot_name, slot_id) \
+    volatile static char const CONCAT(slot_def_name_,slot_ident)[] = (slot_name);\
+    volatile static struct slot_info const slot_ident = {\
+        .name = (uint32_t)CONCAT(slot_def_name_,slot_ident),\
+        .type = ST_PRIMARY,\
+        .id = slot_id,\
+    };
+
+#define DEFINE_SECONDARY_SLOT() TODO
+
+
+#define DEFINE_DMX_PERSONALITY(pers_ident, pers_name, ...)\
+    volatile static char const CONCAT(pers_def_name_,pers_ident)[] = (pers_name);\
+    volatile const uint32_t pers_ident[] = {\
+        (uint32_t)CONCAT(pers_def_name_,pers_ident),\
+        __VA_ARGS__,\
+        (uint32_t)NULL\
+    };
+
+
 /** You must use this macro! Put it at the top of a .c file. */
-#define DEFINE_LED_VECTBL(app_name, app_provider, app_id) \
+#define DEFINE_VECTBL(app_name, app_provider, app_id, ...) \
     volatile static char const vectbl_app_name_[] = (app_name);\
     volatile static char const vectbl_app_provider_[] = (app_provider);\
     volatile const uint32_t led_vectbl_[] \
@@ -17,7 +50,9 @@
         (uint32_t)vectbl_app_name_,\
         (uint32_t)vectbl_app_provider_,\
         (uint32_t)app_id,\
-        ((uint32_t)_DESC_ARCHCPU) | (((uint32_t)_DESC_ARCHFLAGS) << 16)\
+        ((uint32_t)_DESC_ARCHCPU) | (((uint32_t)_DESC_ARCHFLAGS) << 16),\
+        __VA_ARGS__,\
+        (uint32_t)NULL\
     };
 
 #define MODE_RGB (0)
@@ -43,6 +78,74 @@ struct __attribute__ ((packed)) led_chan {
     uint16_t const n_leds;
     /** The length of the `dmx_vals` array. */
     uint16_t const dmx_vals_len;
+    /** Current DMX personality. */
+    uint8_t const dmx_personality_idx;
+};
+
+struct __attribute__ ((packed)) slot_info {
+    uint32_t const name;
+    uint8_t const type;
+    uint16_t const id;
+    uint8_t value;
+};
+
+enum slot_info_type {
+    ST_PRIMARY = 0x00,
+    ST_SEC_FINE = 0x01,
+    ST_SEC_TIMING = 0x02,
+    ST_SEC_SPEED = 0x03,
+    ST_SEC_CONTROL = 0x04,
+    ST_SEC_INDEX = 0x05,
+    ST_SEC_ROTATION = 0x06,
+    ST_SEC_INDEX_ROTATE = 0x07,
+};
+
+enum slot_info_id {
+    SD_INTENSITY = 0x0001,
+    SD_INTENSITY_MASTER = 0x0002,
+
+    SD_PAN = 0x0101,
+    SD_TILT = 0x0101,
+
+    SD_COLOR_WHEEL = 0x0201,
+    SD_COLOR_SUB_CYAN = 0x0202,
+    SD_COLOR_SUB_YELLOW = 0x0203,
+    SD_COLOR_SUB_MAGENTA = 0x0204,
+    SD_COLOR_ADD_RED = 0x0205,
+    SD_COLOR_ADD_GREEN = 0x0206,
+    SD_COLOR_ADD_BLUE = 0x0207,
+    SD_COLOR_CORRECTION = 0x0208,
+    SD_COLOR_SCROLL = 0x0209,
+    SD_COLOR_SEMAPHORE = 0x0210,
+    SD_COLOR_ADD_AMBER = 0x0211,
+    SD_COLOR_ADD_WHITE = 0x0212,
+    SD_COLOR_ADD_WARM_WHITE = 0x0213,
+    SD_COLOR_ADD_COOL_WHITE = 0x0214,
+    SD_COLOR_SUB_UV = 0x0215,
+    SD_COLOR_HUE = 0x0216,
+    SD_COLOR_SATURATION = 0x0217,
+
+    SD_STATIC_GOBO_WHEEL = 0x0301,
+    SD_ROTO_GOBO_WHEEL = 0x0302,
+    SD_PRISM_WHEEL = 0x0303,
+    SD_EFFECTS_WHEEL = 0x0304,
+
+    SD_BEAM_SIZE_IRIS = 0x0401,
+    SD_EDGE = 0x0402,
+    SD_FROST = 0x0403,
+    SD_STROBE = 0x0404,
+    SD_ZOOM = 0x0405,
+    SD_FRAMING_SHUTTER = 0x0406,
+    SD_SHUTTER_ROTATE = 0x0407,
+    SD_DOUSER = 0x0408,
+    SD_BARN_DOOR = 0x0409,
+
+    SD_LAMP_CONTROL = 0x0501,
+    SD_FIXTURE_CONTROL = 0x0502,
+    SD_FIXTURE_SPEED = 0x0503,
+    SD_MACRO = 0x0504,
+
+    SD_UNDEFINED = 0xFFFF,
 };
 
 /** Contains information about an LED channel. */
@@ -142,6 +245,8 @@ static inline int circular_distance(int x, int y, int max)
     else
         return dist;
 }
+
+void update_slot_vals(led_chan_t const *chan);
 
 #ifdef __cplusplus
 }
