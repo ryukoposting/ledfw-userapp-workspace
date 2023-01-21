@@ -6,6 +6,7 @@ CFLAGS:=\
 -ffreestanding\
 -nostartfiles\
 -Wall\
+-Os
 
 CFLAGS_CM4_AAPCS_FPV4_SP_D16:=\
 -mcpu=cortex-m4\

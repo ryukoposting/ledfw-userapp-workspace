@@ -246,7 +246,7 @@ static inline int circular_distance(int x, int y, int max)
         return dist;
 }
 
-void update_slot_vals(led_chan_t const *chan);
+int update_slot_vals(led_chan_t const *chan);
 
 #ifdef __cplusplus
 }
